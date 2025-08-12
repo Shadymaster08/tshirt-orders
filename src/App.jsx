@@ -27,7 +27,13 @@ async function postJSON(url, payload){
 export default function App(){
   const [clientName, setClientName] = useState(() => loadLS('ghoco.clientName','Bolos Crew'))
   const lsKey = useMemo(() => `ghoco.${clientName.toLowerCase().replace(/\s+/g,'-')}`, [clientName])
-  const [sheetWebhook, setSheetWebhook] = useState(() => loadLS(`${lsKey}.webhook`,''))
+  // Initialize the Sheets webhook with a default value pointing to the provided Apps Script URL.
+  // If there is already a saved value in localStorage, that value will override this default.
+  const [sheetWebhook, setSheetWebhook] = useState(() =>
+    loadLS(`${lsKey}.webhook`,
+      'https://script.google.com/macros/s/AKfycbwsa6vyEFrn66wS6nwE6vlV53wkZR9TOOCzdBm1ZmntgXaYzO4cgcwLdvbCP-YL3JvAUA/exec'
+    )
+  )
   const [autoSync, setAutoSync] = useState(() => loadLS(`${lsKey}.autoSync`,false))
 
   const patchModels = mods => (mods||[]).map(m => ({ id: m.id ?? crypto.randomUUID(), name: m.name ?? 'Model', available: m.available ?? true, image: m.image ?? '' }))
@@ -75,7 +81,16 @@ export default function App(){
   useEffect(() => {
     const m = patchModels(loadLS(`${lsKey}.models`, defaultModels))
     const o = patchOrders(loadLS(`${lsKey}.orders`, []), m)
-    setModels(m); setOrders(o); setSheetWebhook(loadLS(`${lsKey}.webhook`, '')); setAutoSync(loadLS(`${lsKey}.autoSync`, false))
+    // When changing the client key, reload state from localStorage, using the same default webhook URL if none is stored.
+    setModels(m)
+    setOrders(o)
+    setSheetWebhook(
+      loadLS(
+        `${lsKey}.webhook`,
+        'https://script.google.com/macros/s/AKfycbwsa6vyEFrn66wS6nwE6vlV53wkZR9TOOCzdBm1ZmntgXaYzO4cgcwLdvbCP-YL3JvAUA/exec'
+      )
+    )
+    setAutoSync(loadLS(`${lsKey}.autoSync`, false))
   }, [lsKey])
 
   const availableModels = models.filter(m => m.available)
