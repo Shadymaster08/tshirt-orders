@@ -51,7 +51,17 @@ export default function App(){
   }
 
   const [models, setModels] = useState(() => patchModels(loadLS(`${lsKey}.models`, defaultModels)))
+  // Edited models state for the Models tab. Allows staging changes before saving.
+  const [editedModels, setEditedModels] = useState(models)
   const [orders, setOrders] = useState(() => patchOrders(loadLS(`${lsKey}.orders`, []), patchModels(loadLS(`${lsKey}.models`, defaultModels))))
+
+  // Whenever the selected tab or models change, sync editedModels when entering the Models tab.
+  useEffect(() => {
+    if (tab === 'models') {
+      setEditedModels(models)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, models])
 
   const [tab, setTab] = useState('new')
   const [toast, setToast] = useState(null)
@@ -287,22 +297,80 @@ export default function App(){
         )}
 
         {tab==='models' && (
-          <Card title='Models' actions={<button onClick={()=>setModels(m=>[{ id: crypto.randomUUID(), name: 'New Model', available: true, image: '' }, ...m])} className='px-3 py-2 rounded-xl bg-black text-white'>Add Model</button>}>
+          <Card
+            title='Models'
+            actions={
+              <div className='flex gap-2'>
+                <button
+                  onClick={() => setEditedModels(m => [{ id: crypto.randomUUID(), name: 'New Model', available: true, image: '' }, ...m])}
+                  className='px-3 py-2 rounded-xl bg-black text-white'
+                >
+                  Add Model
+                </button>
+                <button
+                  onClick={() => { setModels(editedModels); notify('Models saved.'); }}
+                  className='px-3 py-2 rounded-xl bg-blue-600 text-white'
+                >
+                  Save
+                </button>
+              </div>
+            }
+          >
             <div className='grid gap-3'>
-              {models.length===0 && <div className='text-sm text-neutral-500'>No models yet. Add one to get started.</div>}
-              {models.map(m => (
+              {editedModels.length===0 && <div className='text-sm text-neutral-500'>No models yet. Add one to get started.</div>}
+              {editedModels.map(m => (
                 <div key={m.id} className='grid md:grid-cols-12 items-center gap-3 p-3 border rounded-xl bg-white'>
-                  <input value={m.name} onChange={e=>setModels(list=>list.map(x=>x.id===m.id?{...x, name:e.target.value}:x))} className='md:col-span-5 rounded-xl border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-black' />
+                  <input
+                    value={m.name}
+                    onChange={e=>setEditedModels(list=>list.map(x=>x.id===m.id?{...x, name:e.target.value}:x))}
+                    className='md:col-span-5 rounded-xl border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-black'
+                  />
                   <div className='md:col-span-3 flex items-center gap-3'>
-                    {m.image ? <img src={m.image} alt='model' className='h-12 w-12 object-cover rounded-lg border' /> : <div className='h-12 w-12 rounded-lg border grid place-items-center text-[10px] text-neutral-500'>No image</div>}
+                    {m.image ? (
+                      <img src={m.image} alt='model' className='h-12 w-12 object-cover rounded-lg border' />
+                    ) : (
+                      <div className='h-12 w-12 rounded-lg border grid place-items-center text-[10px] text-neutral-500'>No image</div>
+                    )}
                     <label className='text-sm'>
                       <span className='sr-only'>Upload image</span>
-                      <input type='file' accept='image/*' onChange={e=>{ const file=e.target.files?.[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>setModels(list=>list.map(x=>x.id===m.id?{...x, image: reader.result}:x)); reader.readAsDataURL(file) }} className='block w-full text-sm text-neutral-600 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-black file:text-white hover:file:bg-neutral-800' />
+                      <input
+                        type='file'
+                        accept='image/*'
+                        onChange={e=>{
+                          const file=e.target.files?.[0];
+                          if(!file) return;
+                          const reader=new FileReader();
+                          reader.onload=()=>setEditedModels(list=>list.map(x=>x.id===m.id?{...x, image: reader.result}:x));
+                          reader.readAsDataURL(file);
+                        }}
+                        className='block w-full text-sm text-neutral-600 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-black file:text-white hover:file:bg-neutral-800'
+                      />
                     </label>
-                    {m.image && (<button onClick={()=>setModels(list=>list.map(x=>x.id===m.id?{...x, image:''}:x))} className='px-3 py-2 rounded-xl border border-neutral-300'>Remove</button>)}
+                    {m.image && (
+                      <button
+                        onClick={()=>setEditedModels(list=>list.map(x=>x.id===m.id?{...x, image:''}:x))}
+                        className='px-3 py-2 rounded-xl border border-neutral-300'
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
-                  <label className='md:col-span-2 flex items-center gap-2 text-sm justify-self-start'><input type='checkbox' checked={m.available} onChange={e=>setModels(list=>list.map(x=>x.id===m.id?{...x, available:e.target.checked}:x))} />Available</label>
-                  <div className='md:col-span-2 flex justify-end'><button onClick={()=>setModels(list=>list.filter(x=>x.id!==m.id))} className='px-3 py-2 rounded-xl border border-neutral-300'>Remove Model</button></div>
+                  <label className='md:col-span-2 flex items-center gap-2 text-sm justify-self-start'>
+                    <input
+                      type='checkbox'
+                      checked={m.available}
+                      onChange={e=>setEditedModels(list=>list.map(x=>x.id===m.id?{...x, available:e.target.checked}:x))}
+                    />
+                    Available
+                  </label>
+                  <div className='md:col-span-2 flex justify-end'>
+                    <button
+                      onClick={()=>setEditedModels(list=>list.filter(x=>x.id!==m.id))}
+                      className='px-3 py-2 rounded-xl border border-neutral-300'
+                    >
+                      Remove Model
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
