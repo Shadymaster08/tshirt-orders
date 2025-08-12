@@ -55,6 +55,8 @@ export default function App(){
   const [editedModels, setEditedModels] = useState(models)
   const [orders, setOrders] = useState(() => patchOrders(loadLS(`${lsKey}.orders`, []), patchModels(loadLS(`${lsKey}.models`, defaultModels))))
 
+  const [tab, setTab] = useState('new')
+
   // Whenever the selected tab or models change, sync editedModels when entering the Models tab.
   useEffect(() => {
     if (tab === 'models') {
@@ -62,8 +64,6 @@ export default function App(){
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, models])
-
-  const [tab, setTab] = useState('new')
   const [toast, setToast] = useState(null)
 
   useEffect(() => { saveLS('ghoco.clientName', clientName) }, [clientName])
