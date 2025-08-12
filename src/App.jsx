@@ -25,16 +25,16 @@ async function postJSON(url, payload){
 }
 
 export default function App(){
+  // Hard‑coded Google Sheets webhook URL. All clients will use this URL by default.
+  const DEFAULT_WEBHOOK = 'https://script.google.com/macros/s/AKfycbwsa6vyEFrn66wS6nwE6vlV53wkZR9TOOCzdBm1ZmntgXaYzO4cgcwLdvbCP-YL3JvAUA/exec'
   const [clientName, setClientName] = useState(() => loadLS('ghoco.clientName','Bolos Crew'))
   const lsKey = useMemo(() => `ghoco.${clientName.toLowerCase().replace(/\s+/g,'-')}`, [clientName])
   // Initialize the Sheets webhook with a default value pointing to the provided Apps Script URL.
   // If there is already a saved value in localStorage, that value will override this default.
-  const [sheetWebhook, setSheetWebhook] = useState(() =>
-    loadLS(`${lsKey}.webhook`,
-      'https://script.google.com/macros/s/AKfycbwsa6vyEFrn66wS6nwE6vlV53wkZR9TOOCzdBm1ZmntgXaYzO4cgcwLdvbCP-YL3JvAUA/exec'
-    )
-  )
-  const [autoSync, setAutoSync] = useState(() => loadLS(`${lsKey}.autoSync`,false))
+  // Always use the default webhook and enable auto‑sync. These values do not
+  // rely on localStorage so that every visitor has auto‑sync enabled by default.
+  const [sheetWebhook, setSheetWebhook] = useState(DEFAULT_WEBHOOK)
+  const [autoSync, setAutoSync] = useState(true)
 
   const patchModels = mods => (mods||[]).map(m => ({ id: m.id ?? crypto.randomUUID(), name: m.name ?? 'Model', available: m.available ?? true, image: m.image ?? '' }))
   const patchOrders = (ords, models) => {
@@ -75,8 +75,11 @@ export default function App(){
   useEffect(() => { saveLS('ghoco.clientName', clientName) }, [clientName])
   useEffect(() => { saveLS(`${lsKey}.models`, models) }, [lsKey, models])
   useEffect(() => { saveLS(`${lsKey}.orders`, orders) }, [lsKey, orders])
-  useEffect(() => { saveLS(`${lsKey}.webhook`, sheetWebhook) }, [lsKey, sheetWebhook])
-  useEffect(() => { saveLS(`${lsKey}.autoSync`, autoSync) }, [lsKey, autoSync])
+  // Persist models and orders in localStorage per client. Webhook and autoSync
+  // are intentionally not persisted so that the hard‑coded defaults apply for
+  // every visitor.
+  // useEffect(() => { saveLS(`${lsKey}.webhook`, sheetWebhook) }, [lsKey, sheetWebhook])
+  // useEffect(() => { saveLS(`${lsKey}.autoSync`, autoSync) }, [lsKey, autoSync])
 
   useEffect(() => {
     const m = patchModels(loadLS(`${lsKey}.models`, defaultModels))
@@ -84,13 +87,9 @@ export default function App(){
     // When changing the client key, reload state from localStorage, using the same default webhook URL if none is stored.
     setModels(m)
     setOrders(o)
-    setSheetWebhook(
-      loadLS(
-        `${lsKey}.webhook`,
-        'https://script.google.com/macros/s/AKfycbwsa6vyEFrn66wS6nwE6vlV53wkZR9TOOCzdBm1ZmntgXaYzO4cgcwLdvbCP-YL3JvAUA/exec'
-      )
-    )
-    setAutoSync(loadLS(`${lsKey}.autoSync`, false))
+    // Always reset the webhook and autoSync to the hard‑coded defaults when the client changes.
+    setSheetWebhook(DEFAULT_WEBHOOK)
+    setAutoSync(true)
   }, [lsKey])
 
   const availableModels = models.filter(m => m.available)
@@ -411,7 +410,22 @@ export default function App(){
         {tab==='settings' && (
           <Section>
             <Card title='Client'><div className='grid gap-3'><Field label='Client name'><Input value={clientName} onChange={e=>setClientName(e.target.value)} /></Field><div className='text-xs text-neutral-500'>Data is stored per client name in your browser.</div></div></Card>
-            <Card title='Google Sheets Sync'><div className='grid gap-3'><Field label='Webhook URL (Google Apps Script web app)'><Input placeholder='https://script.google.com/...' value={sheetWebhook} onChange={e=>setSheetWebhook(e.target.value)} /></Field><label className='flex items-center gap-2 text-sm'><input type='checkbox' checked={autoSync} onChange={e=>setAutoSync(e.target.checked)} />Auto‑sync new orders to Sheets</label><div className='text-xs text-neutral-500 leading-relaxed'><p className='mb-2'>Use a Google Apps Script deployed as a web app to receive JSON and append to a sheet. Expected payloads:</p><pre className='bg-neutral-100 rounded-xl p-3 overflow-auto text-[11px]'>{`{ type: "order", order: { ... } }\n{ type: "orders", orders: [ { ... }, { ... } ] }`}</pre></div></div></Card>
+            <Card title='Google Sheets Sync'>
+              <div className='grid gap-3'>
+                <Field label='Webhook URL (Google Apps Script web app)'>
+                  {/* Display the webhook URL as read‑only since it is hard‑coded into the app. */}
+                  <Input value={sheetWebhook} disabled />
+                </Field>
+                {/* Auto‑sync is always enabled. Inform the user rather than provide a toggle. */}
+                <div className='text-sm font-medium'>Auto‑sync new orders to Sheets is always enabled.</div>
+                <div className='text-xs text-neutral-500 leading-relaxed'>
+                  <p className='mb-2'>Use a Google Apps Script deployed as a web app to receive JSON and append to a sheet. Expected payloads:</p>
+                  <pre className='bg-neutral-100 rounded-xl p-3 overflow-auto text-[11px]'>
+{`{ type: "order", order: { ... } }\n{ type: "orders", orders: [ { ... }, { ... } ] }`}
+                  </pre>
+                </div>
+              </div>
+            </Card>
           </Section>
         )}
       </main>
