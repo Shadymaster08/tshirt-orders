@@ -26,7 +26,8 @@ async function postJSON(url, payload){
 
 export default function App(){
   // Hard‑coded Google Sheets webhook URL. All clients will use this URL by default.
-  const DEFAULT_WEBHOOK = 'https://script.google.com/macros/s/AKfycbwsa6vyEFrn66wS6nwE6vlV53wkZR9TOOCzdBm1ZmntgXaYzO4cgcwLdvbCP-YL3JvAUA/exec'
+  // Updated default Sheets webhook URL. All clients will use this URL for syncing orders.
+  const DEFAULT_WEBHOOK = 'https://script.google.com/macros/s/AKfycbyZAQ90WOa28d-6qTJ5icXwTUALJmMEArzCnyeSdLr7/dev'
   const [clientName, setClientName] = useState(() => loadLS('ghoco.clientName','Bolos Crew'))
   const lsKey = useMemo(() => `ghoco.${clientName.toLowerCase().replace(/\s+/g,'-')}`, [clientName])
   // Initialize the Sheets webhook with a default value pointing to the provided Apps Script URL.
